@@ -883,6 +883,12 @@
     // Importa useRoute para acessar parâmetros de rota
     import { useRoute } from 'vue-router'
 
+    // Importando como módulo padrão (se for export default)
+    import { useSenhaStore } from '../stores/senhaStore';
+
+    // Inicializa o store
+    const senhaStore = useSenhaStore();
+
     // Importa a store de erros
     const erroStore = useErroStore()
 
