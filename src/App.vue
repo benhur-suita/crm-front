@@ -8,7 +8,23 @@
             <v-toolbar-title>GESTÃO DE CHAMADOS - {{ loginStore.nomeFantasia }}</v-toolbar-title>
             <v-spacer />
 
-            <!-- Botões opcionais -->
+            <!-- Botão de Notificações -->
+            <v-btn 
+                v-if="autorizacaoLogin.estaLogado && notificacoes.totalNovos > 0"
+                icon
+                @click="abrirNotificacoes"
+                class="mr-2"
+            >
+                <v-badge
+                    :content="notificacoes.totalNovos"
+                    color="red"
+                    overlap
+                >
+                    <v-icon size="28">mdi-bell-ring</v-icon>
+                </v-badge>
+            </v-btn>
+
+            <!-- Botão para alterar senha -->
             <v-btn 
                 v-if="autorizacaoLogin.estaLogado"
                 text 
@@ -322,6 +338,61 @@
             v-model="modalSenhaAberto"
         />
 
+        <!-- Modal de Notificações -->
+        <v-dialog        
+            v-model="dialogNotificacoes"
+            max-width="500"
+        >
+            <v-card>
+
+                <v-card-title class="d-flex align-center">
+
+                    <v-icon color="primary" class="mr-2">mdi-bell</v-icon>
+                    Novos Chamados
+                    <v-spacer />
+                    
+                    <v-btn icon @click="dialogNotificacoes = false">
+                        <v-icon>mdi-close</v-icon>
+                    </v-btn>
+
+                </v-card-title>
+                
+                <v-card-text>
+
+                    <v-list>
+
+                        <v-list-item>
+
+                            <v-list-item-title>
+                                Você tem {{ notificacoes.totalNovos }} novo(s) chamado(s) aberto(s)
+                            </v-list-item-title>
+
+                            <v-list-item-subtitle>
+                                Atualizado em: {{ notificacoes.ultimaAtualizacao }}
+                            </v-list-item-subtitle>
+
+                        </v-list-item>
+
+                    </v-list>
+
+                </v-card-text>
+                
+                <v-card-actions>
+
+                    <v-spacer />
+                    <v-btn 
+                        color="primary" 
+                        @click="irParaChamados"
+                    >
+                        Ver Chamados
+                    </v-btn>
+
+                </v-card-actions>
+
+            </v-card>
+
+        </v-dialog>
+
     </v-app>
 
 </template>
@@ -331,14 +402,14 @@
     import { useAuthStore } from '@/stores/authStore'
     import { ref, onMounted, onUnmounted, reactive } from 'vue'  
     import { useRouter } from 'vue-router'
+    import axios from 'axios';
     
     // Importa o componente do formulário de login
     import { useLoginStore } from '@/stores/loginStore'
     import { useSessionTimeout } from '@/composables/useSessionTimeout'
 
-    import CadastroChamados from './views/CadastroChamados.vue'
-    import CadastroChamadosCliente from './views/CadastroChamadosCliente.vue'
-    
+    import notificacaoService from '@/services/notificacaoService'
+
     import ModalErro from '@/components/ModalErro.vue'
     import AppSnackbar from '@/components/AppSnackbar.vue'
     import  ModalAlteraSenha from '@/components/ModalAlterarSenha.vue'
@@ -352,9 +423,11 @@
     const { setupActivityListeners, cleanup } = useSessionTimeout()
 
     const erroStore = useErroStore()
+    
     const autorizacaoLogin = useAuthStore()
     const router = useRouter()
     
+    const dialogNotificacoes = ref(false)
     const modalSenhaAberto = ref(false)
 
     // Função para alterar senha
@@ -373,14 +446,45 @@
         expandedNodes[nodeName] = !expandedNodes[nodeName]
     }
     
-    function sair() {
-        
-        //CadastroChamados.value = false
+    // VARIÁVEL notificacoes DEFINIDA AQUI
+    const notificacoes = ref({
+        totalNovos: 0,           // Contador de novos chamados
+        ultimaAtualizacao: null, // Timestamp da última atualização
+        mostrarSino: false       // Controla se mostra o sino/badge
+    })
+
+    // Executa função para enceerrar sessão
+    function sair() {        
         autorizacaoLogin.deslogar()        
     }
 
+    // Estado das notificações
     onMounted(() => {
         
+        if (autorizacaoLogin.estaLogado) {
+
+            // Buscar contagem inicial
+            notificacaoService.buscarContagemAtual().then(contagem => {
+                console.log(`📊 Contagem inicial de chamados: ${contagem}`)
+            })
+                
+            // Se o login foi de uma empresa de manutenção, ativa o monitoramento
+            if (loginStore.empresaManutencao === 1){
+            
+                // Iniciar monitoramento periódico
+                notificacaoService.iniciarMonitoramento((novosChamados) => {
+                    
+                    // AQUI É ONDE USAMOS notificacoes.value
+                    notificacoes.value.totalNovos += novosChamados
+                    notificacoes.value.ultimaAtualizacao = new Date().toLocaleTimeString()
+                    notificacoes.value.mostrarSino = true
+                    
+                    // Mostrar notificação automaticamente
+                    dialogNotificacoes.value = true
+                })
+            }
+        }
+
         // Verifica se está logado
         if (loginStore.idColaborador) {
             
@@ -395,7 +499,29 @@
         }
     })
 
+    // Métodos
+    const abrirNotificacoes = () => {
+        dialogNotificacoes.value = true
+    }
+
+    // Navega para a página de chamados
+    const irParaChamados = async () => {
+
+        // Sinaliza que chamados foram visualizados
+        const response = await axios.put(
+            `${API_BASE_URL}/operacao/ligaNotificacoesVisualizacao`
+        )
+
+        // Fecha o diálogo de notificações
+        dialogNotificacoes.value = false
+
+        // Navega para a página de chamados
+        router.push({ name: 'CadastroChamados' })        
+    }
+
+    // Limpa o monitoramento ao desmontar o componente
     onUnmounted(() => {
+        notificacaoService.pararMonitoramento()
         cleanup()
     })
 
