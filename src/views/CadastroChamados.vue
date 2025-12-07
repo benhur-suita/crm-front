@@ -3785,7 +3785,7 @@
 
             // Carregalista de chamados
             carregaListaChamados()
-        }
+        }        
     })
 
     // Esta rotina é disparada quando o modal é aberto ou fechado
