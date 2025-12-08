@@ -5,6 +5,7 @@ import { useErroStore } from '@/stores/erroStore'
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const TEMPO_MONITORAMENTO = import.meta.env.VITE_TEMPO_MONITORAMENTO || 120000; // Padrão 2 minutos
 
+// Serviço de Notificações
 class NotificacaoService {
 
     // Construtor da classe de serviço
@@ -34,7 +35,7 @@ class NotificacaoService {
 
         try {
 
-            // Fazer requisição para API - SEM headers de autorização
+            // Busca as quantidades de chamados abertos
             const response = await axios.get(
                 `${API_BASE_URL}/operacao/buscaQuantidadesChamadosAberto`
             )
@@ -48,39 +49,25 @@ class NotificacaoService {
             // Buscar total de chamados abertos
             totalAbertos = data.data.totalChamadosAbertos
             
-            // Na primeira verificação, apenas setar o contador
-            if (primeiraVerificacao) {
-
-                this.contadorAnterior = totalAbertos
-                return
-            }
-            
-            // Verificar se há aumento no número de chamados abertos
-            if (totalAbertos > this.contadorAnterior) {
-
-                // Salva o número de novos chamados
-                const novosChamados = totalAbertos - this.contadorAnterior
+            if (totalAbertos != 0) {
                 
                 // Executa callback para notificar a aplicação app.vue que existem novos chamados
                 if (callback && typeof callback === 'function') {
-                    callback(novosChamados)
+                    callback(totalAbertos)
                 }
                 
                 // Tocar som de notificação
                 this.tocarSomNotificacao()
-            }
-            
-            // Atualizar contador anterior
-            this.contadorAnterior = totalAbertos
+            }            
 
         } catch (erro) {
             
             const erroStore = useErroStore()            
-            
             erroStore.exibirErro(erro)
         }
     }
 
+    // Tocar som de notificação
     tocarSomNotificacao() {
 
         try {
@@ -93,6 +80,7 @@ class NotificacaoService {
                 return
             }
             
+            // Criar contexto de áudio
             const context = new AudioContext()
             
             // Criar oscilador para o som
@@ -110,17 +98,16 @@ class NotificacaoService {
             // Envelope de volume (sobe e desce suavemente)
             const now = context.currentTime
             gainNode.gain.setValueAtTime(0, now)
-            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.1)
-            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6)
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.15)
+            gainNode.gain.exponentialRampToValueAtTime(0.01, now + 1.0)
             
             // Tocar o som
             oscillator.start(now)
-            oscillator.stop(now + 0.6)
+            oscillator.stop(now + 1.2)
             
-            console.log('🔔 Som de notificação tocado')
-            
-        } catch (error) {
-            console.error('❌ Erro ao tocar som de notificação:', error)
+        } catch (erro) {
+            const erroStore = useErroStore()            
+            erroStore.exibirErro(erro)
         }
     } 
 
