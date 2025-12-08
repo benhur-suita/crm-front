@@ -400,6 +400,7 @@
 <script setup>
 
     import { useAuthStore } from '@/stores/authStore'
+    import { storeToRefs } from 'pinia'
     import { ref, onMounted, onUnmounted, reactive } from 'vue'  
     import { useRouter } from 'vue-router'
     import axios from 'axios';
@@ -424,11 +425,41 @@
 
     const erroStore = useErroStore()
     
+    // Importa a store de autenticação
     const autorizacaoLogin = useAuthStore()
+
+    // Importa o roteador
     const router = useRouter()
     
+    // Cria variáveis reativas
     const dialogNotificacoes = ref(false)
     const modalSenhaAberto = ref(false)
+
+    // Observa mudanças no estado de autenticação
+    autorizacaoLogin.$subscribe((mutation, state) => {
+
+        // Verifica se está logado
+        if (state.estaLogado) {
+
+            // Se o login foi de uma empresa de manutenção, ativa o monitoramento
+            if (loginStore.empresaManutencao === 1){
+            
+                // Iniciar monitoramento periódico
+                notificacaoService.iniciarMonitoramento((novosChamados) => {
+                    
+                    // AQUI É ONDE USAMOS notificacoes.value
+                    notificacoes.value.totalNovos = novosChamados
+                    notificacoes.value.ultimaAtualizacao = new Date().toLocaleTimeString()
+                    notificacoes.value.mostrarSino = true
+                })
+            }
+            
+        } else {
+            
+            // Para o monitoramento de notificações
+            notificacaoService.pararMonitoramento()        
+        }
+    })
 
     // Função para alterar senha
     const abrirAlteracaoSenha = () => {
@@ -454,37 +485,15 @@
     })
 
     // Executa função para enceerrar sessão
-    function sair() {        
+    function sair() {
+
+        // Desloga o usuário
         autorizacaoLogin.deslogar()        
     }
 
     // Estado das notificações
     onMounted(() => {
         
-        if (autorizacaoLogin.estaLogado) {
-
-            // Buscar contagem inicial
-            notificacaoService.buscarContagemAtual().then(contagem => {
-                console.log(`📊 Contagem inicial de chamados: ${contagem}`)
-            })
-                
-            // Se o login foi de uma empresa de manutenção, ativa o monitoramento
-            if (loginStore.empresaManutencao === 1){
-            
-                // Iniciar monitoramento periódico
-                notificacaoService.iniciarMonitoramento((novosChamados) => {
-                    
-                    // AQUI É ONDE USAMOS notificacoes.value
-                    notificacoes.value.totalNovos += novosChamados
-                    notificacoes.value.ultimaAtualizacao = new Date().toLocaleTimeString()
-                    notificacoes.value.mostrarSino = true
-                    
-                    // Mostrar notificação automaticamente
-                    dialogNotificacoes.value = true
-                })
-            }
-        }
-
         // Verifica se está logado
         if (loginStore.idColaborador) {
             
@@ -499,9 +508,30 @@
         }
     })
 
+    // Limpa o monitoramento ao desmontar o componente
+    onUnmounted(() => {
+        notificacaoService.pararMonitoramento()
+        cleanup()
+    })
+
     // Métodos
-    const abrirNotificacoes = () => {
-        dialogNotificacoes.value = true
+    const abrirNotificacoes = async () => {
+
+        // Sinaliza que chamados foram visualizados
+        const response = await axios.put(
+            `${API_BASE_URL}/operacao/ligaNotificacoesVisualizacao`
+        )
+
+        notificacoes.value.totalNovos = 0
+        notificacoes.value.mostrarSino = false
+
+        // Fecha o diálogo de notificações
+        //dialogNotificacoes.value = false
+
+        // Navega para a página de chamados
+        router.push({ name: 'CadastroChamados' })        
+
+        //dialogNotificacoes.value = true
     }
 
     // Navega para a página de chamados
@@ -513,18 +543,11 @@
         )
 
         // Fecha o diálogo de notificações
-        dialogNotificacoes.value = false
+        //dialogNotificacoes.value = false
 
         // Navega para a página de chamados
         router.push({ name: 'CadastroChamados' })        
-    }
-
-    // Limpa o monitoramento ao desmontar o componente
-    onUnmounted(() => {
-        notificacaoService.pararMonitoramento()
-        cleanup()
-    })
-
+    }    
 </script>
 
 <style scoped>
