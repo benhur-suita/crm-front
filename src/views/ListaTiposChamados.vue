@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -194,7 +194,7 @@
 
     // Cria os headers da tabela
     const headersTiposChamados = [
-        { title: 'Funções', value: 'funcoes', sortable: false },
+        { title: 'Editar', value: 'funcoes', sortable: false },
         { title: 'Código', value: 'idTipoChamado', sortable: true },
         { title: 'Tipo Chamado', value: 'nome', sortable: true },
         { title: 'Condição', value: 'ativo', sortable: true }        
