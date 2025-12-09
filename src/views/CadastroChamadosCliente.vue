@@ -13,7 +13,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px', // Altura da barra azul
+                    'top': '64px', // Altura da barra azul
                     'left': '260px', // Largura do menu lateral
                     'width': 'calc(100% - 260px)', // 100% menos o menu lateral
                     'z-index': '999',
@@ -98,6 +98,7 @@
                         v-model:options="opcoesTabelaChamados"
                         :headers="headersChamados"
                         :items="listaChamados"
+                        :items-length="totalChamados"
                         :loading="carregandoChamados"
                         @update:options="carregaListaChamados"
                         class="elevation-2 rounded-lg"
@@ -949,6 +950,9 @@
     // Define elemento que mostra a barra de progresso da carga da tabela
     const carregandoChamados = ref(false)
 
+    // Total de itens da tabela
+    const totalChamados = ref(0)
+
     // Define elemento que mostra a barra de progresso da carga dos comentários
     const carregandoComentariosAcordeon = ref(false)
     
@@ -1686,6 +1690,9 @@
 
                     // Mostra quantidade de chamados
                     contarStatusDosChamados(retorno)
+
+                    // Atualiza o total de chamados
+                    totalChamados.value = retorno.length
                     
                 } else {
                     listaChamados.value = []
