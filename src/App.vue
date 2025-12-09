@@ -337,92 +337,62 @@
         <ModalAlteraSenha 
             v-model="modalSenhaAberto"
         />
-
-        <!-- Modal de Notificações -->
-        <v-dialog        
-            v-model="dialogNotificacoes"
-            max-width="500"
-        >
-            <v-card>
-
-                <v-card-title class="d-flex align-center">
-
-                    <v-icon color="primary" class="mr-2">mdi-bell</v-icon>
-                    Novos Chamados
-                    <v-spacer />
-                    
-                    <v-btn icon @click="dialogNotificacoes = false">
-                        <v-icon>mdi-close</v-icon>
-                    </v-btn>
-
-                </v-card-title>
-                
-                <v-card-text>
-
-                    <v-list>
-
-                        <v-list-item>
-
-                            <v-list-item-title>
-                                Você tem {{ notificacoes.totalNovos }} novo(s) chamado(s) aberto(s)
-                            </v-list-item-title>
-
-                            <v-list-item-subtitle>
-                                Atualizado em: {{ notificacoes.ultimaAtualizacao }}
-                            </v-list-item-subtitle>
-
-                        </v-list-item>
-
-                    </v-list>
-
-                </v-card-text>
-                
-                <v-card-actions>
-
-                    <v-spacer />
-                    <v-btn 
-                        color="primary" 
-                        @click="irParaChamados"
-                    >
-                        Ver Chamados
-                    </v-btn>
-
-                </v-card-actions>
-
-            </v-card>
-
-        </v-dialog>
-
+       
     </v-app>
 
 </template>
 
 <script setup>
 
-    import { useAuthStore } from '@/stores/authStore'
-    import { storeToRefs } from 'pinia'
+    // Importa módulos do Vue
     import { ref, onMounted, onUnmounted, reactive } from 'vue'  
-    import { useRouter } from 'vue-router'
+    
+    // Importa módulos do Vue Router
+    import { useRouter, useRoute } from 'vue-router'
+    
+    // Importa axios para requisições HTTP
     import axios from 'axios';
+
+    // Importa módulo que controla as autorizações se está logado ou não
+    import { useAuthStore } from '@/stores/authStore'
+    
+    // Importa módulo do Pinia para manipulação de stores
+    import { storeToRefs } from 'pinia'
     
     // Importa o componente do formulário de login
     import { useLoginStore } from '@/stores/loginStore'
+    
+    // Importa o composable para controle de timeout de sessão
     import { useSessionTimeout } from '@/composables/useSessionTimeout'
 
+    // Importa o serviço de notificações
     import notificacaoService from '@/services/notificacaoService'
 
+    // Importa modal de erro
     import ModalErro from '@/components/ModalErro.vue'
+    
+    // Importa componente de Snackbar
     import AppSnackbar from '@/components/AppSnackbar.vue'
+    
+    // Importa modal de alteração de senha
     import  ModalAlteraSenha from '@/components/ModalAlterarSenha.vue'
+    
+    // Importa a store de erros
     import { useErroStore } from '@/stores/erroStore'
+    
+    // Importa a store de chamados
+    import { useChamadoStore } from '@/stores/chamadoStore'
     
     // Carrega o endereço das api's
     const API_BASE_URL = import.meta.env.VITE_API_URL;
 
     // Importa a store de chamados
     const loginStore = useLoginStore()
+    
+    // Desestrutura variáveis reativas da store de login
     const { setupActivityListeners, cleanup } = useSessionTimeout()
 
+    // Importa a store de erros
     const erroStore = useErroStore()
     
     // Importa a store de autenticação
@@ -431,9 +401,17 @@
     // Importa o roteador
     const router = useRouter()
     
+    // Importa a rota atual
+    const route = useRoute()
+
+    // Importa a store de chamados
+    const chamadoStore = useChamadoStore()
+
     // Cria variáveis reativas
-    const dialogNotificacoes = ref(false)
     const modalSenhaAberto = ref(false)
+
+    // Flag para saber se o CadastroChamados está carregado
+    const cadastroChamadosCarregado = ref(false)
 
     // Observa mudanças no estado de autenticação
     autorizacaoLogin.$subscribe((mutation, state) => {
@@ -497,10 +475,25 @@
         // Verifica se está logado
         if (loginStore.idColaborador) {
             
+            // Se o login foi de uma empresa de manutenção, ativa o monitoramento
+            if (loginStore.empresaManutencao === 1){
+            
+                // Iniciar monitoramento periódico
+                notificacaoService.iniciarMonitoramento((novosChamados) => {
+                    
+                    // AQUI É ONDE USAMOS notificacoes.value
+                    notificacoes.value.totalNovos = novosChamados
+                    notificacoes.value.ultimaAtualizacao = new Date().toLocaleTimeString()
+                    notificacoes.value.mostrarSino = true
+                })
+            }
+
             // Verifica se a sessão expirou
             const expired = loginStore.checkSessionExpiry()
             
+            // Se a sessão não expirou, inicia o monitoramento de atividade
             if (!expired) {
+
                 // Atualiza timestamp e inicia monitoramento
                 loginStore.updateActivity()
                 setupActivityListeners()
@@ -514,40 +507,53 @@
         cleanup()
     })
 
-    // Métodos
+    // Monitorar mudanças de rota
+    router.afterEach((to) => {
+        cadastroChamadosCarregado.value = to.name === 'CadastroChamados'
+    })
+    
+    // Abre o diálogo de notificações
     const abrirNotificacoes = async () => {
+        
+        try {
 
-        // Sinaliza que chamados foram visualizados
-        const response = await axios.put(
-            `${API_BASE_URL}/operacao/ligaNotificacoesVisualizacao`
-        )
+            // Sinaliza que chamados foram visualizados
+            const response = await axios.put(
+                `${API_BASE_URL}/operacao/ligaNotificacoesVisualizacao`
+            )
 
-        notificacoes.value.totalNovos = 0
-        notificacoes.value.mostrarSino = false
+            // Reseta o contador de novos chamados
+            notificacoes.value.totalNovos = 0
 
-        // Fecha o diálogo de notificações
-        //dialogNotificacoes.value = false
+            // Esconde o sino
+            notificacoes.value.mostrarSino = false
 
-        // Navega para a página de chamados
-        router.push({ name: 'CadastroChamados' })        
+            // Verifica se está na rota CadastroChamados
+            const estaEmCadastroChamados = route.name === 'CadastroChamados'
+            
+            // Se não estiver, navega para lá
+            if (!estaEmCadastroChamados) {
 
-        //dialogNotificacoes.value = true
+                // Não está na rota - navegar para CadastroChamados
+                await router.push({ name: 'CadastroChamados' })
+                
+                // Pequeno delay para garantir que o componente montou
+                setTimeout(() => {
+                    // Solicitar recarregamento após navegação
+                    chamadoStore.solicitarRecarregamento()
+                }, 100)
+
+            } else {
+                
+                // Já está na rota - solicitar recarregamento imediato
+                chamadoStore.solicitarRecarregamento()
+            }
+
+        } catch (erro) {
+            erroStore.exibirErro(erro)
+        }
     }
 
-    // Navega para a página de chamados
-    const irParaChamados = async () => {
-
-        // Sinaliza que chamados foram visualizados
-        const response = await axios.put(
-            `${API_BASE_URL}/operacao/ligaNotificacoesVisualizacao`
-        )
-
-        // Fecha o diálogo de notificações
-        //dialogNotificacoes.value = false
-
-        // Navega para a página de chamados
-        router.push({ name: 'CadastroChamados' })        
-    }    
 </script>
 
 <style scoped>
