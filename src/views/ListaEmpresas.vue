@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -193,7 +193,7 @@
 
     // Cria os headers da tabela
     const headersEmpresas = [
-        { title: 'Funções', value: 'funcoes', sortable: false },
+        { title: 'Editar', value: 'funcoes', sortable: false },
         { title: 'Código', value: 'idEmpresa', sortable: true },
         { title: 'Empresa', value: 'nomeFantasia', sortable: true },
         { title: 'Apelido', value: 'apelido', sortable: true },
