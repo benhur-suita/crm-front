@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -239,15 +239,16 @@
                 
                 if (respostaApi) {
 
-                    // Converte os campos TINYINT(1) para booleanos
-                    respostaApi.ativo = respostaApi.ativo === 1;
-
+                    // Atribui os dados retornados da API para a variável dadosProduto
                     dadosProduto.value = respostaApi;   
                     
                     dadosProduto.value.precoTabela = Number(respostaApi.precoTabela).toLocaleString('pt-BR', {
                         style: 'currency',
                         currency: 'BRL'
                     });
+
+                    // Converte os campos TINYINT(1) para booleanos
+                    dadosProduto.value.ativo = dadosProduto.value.ativo === 1;                    
                 }
 
             } catch (erro) {
@@ -292,23 +293,11 @@
 
         try {
             
-            // Salva custo do chamado para retornar formatado caso ocorra erro
-            var salvaPrecoTabela = dadosProduto.value.precoTabela
-
-            // Formata o custo do chamado para salvar no banco
-            let precoNumerico = parseFloat(
-                salvaPrecoTabela.replace('R$', '').trim().replace(/\./g, '').replace(',', '.')
-            );
-            dadosProduto.value.precoTabela = precoNumerico.toFixed(2);
-
             // Busca o ID da empresa para saber se é inclusão ou edição
             const {data: resposta } = await axios.post(`${API_BASE_URL}/administracao/salvaProduto/${idProdutoRecebido.value}`, dadosProduto.value)
             
             // Atualiza o idEmpresa com o valor retornado da API
             idProdutoRecebido.value = resposta.idProduto;
-
-            // Retona número formatado em moeda
-            dadosProduto.value.precoTabela = salvaPrecoTabela
 
             // Exibe mensagem de sucesso
             snackbar.trigger('Produto Salvo Com Sucesso.', 'success');
@@ -322,8 +311,6 @@
             }
 
         } catch (erro) {
-
-            dadosProduto.value.precoTabela = salvaPrecoTabela
             erroStore.exibirErro(erro)
         }
     } 
