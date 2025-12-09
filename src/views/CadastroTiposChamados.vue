@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -212,10 +212,11 @@
                 
                 if (respostaApi) {
 
-                    // Converte os campos TINYINT(1) para booleanos
-                    respostaApi.ativo = respostaApi.ativo === 1;
+                    // Atribui os dados retornados da API para a variável dadosTipoChamados
+                    dadosTipoChamados.value = respostaApi;
 
-                    dadosTipoChamados.value = respostaApi;                   
+                    // Converte os campos TINYINT(1) para booleanos
+                    dadosTipoChamados.value.ativo = dadosTipoChamados.value.ativo === 1;                    
                 }
 
             } catch (erro) {
