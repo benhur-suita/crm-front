@@ -14,7 +14,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -447,17 +447,23 @@
         if (idMensagemRecebido.value != 0){
 
             try {
-                // Carrega todos provedores
+                
+                // Carrega todos provedores de e-mail
                 const { data: dadosProvedor } = await axios.get(`${API_BASE_URL}/administracao/carregaListaProvedores`)
                 
-                dadosMensagem.value.provedor = dadosProvedor.data.map(item => ({
-                    title: item.provedor,
-                    value: Number(item.idProvedor)
-                }))
+                // Mapeia os dados para o formato esperado pelo v-select
+                dadosMensagem.value.provedor = dadosProvedor.data
+                    .filter(item => item.ativo == 1)
+                    .map(item => ({
+                        title: item.provedor,
+                        value: Number(item.idProvedor)
+                    })
+                )
                 
                 // Chama a API para buscar os dados das mensagens
                 const { data: respostaApi } = await axios.get(`${API_BASE_URL}/administracao/carregaMensagem/${idMensagemRecebido.value}`)
                 
+                // Verifica se retornou dados
                 if (respostaApi) {
 
                     // Atualiza os dados - garante que idProvedor é número
@@ -467,11 +473,13 @@
                     dadosMensagem.value.ativo = Boolean(respostaApi.ativo)
                     dadosMensagem.value.idMensagem = Number(respostaApi.idMensagem)
 
-                    // CARREGA OS VALORES DE FONTE E TAMANHO SE EXISTIREM
+                    // Carrega a fonte selecionada
                     if (respostaApi.fonte) {
                         dadosMensagem.value.fonte = respostaApi.fonte
                         fonteIncial.value = respostaApi.fonte
                     }
+
+                    // Carrega o tamanho da fonte
                     if (respostaApi.tamanho) {
                         dadosMensagem.value.tamanho = respostaApi.tamanho
                         tamanhoInicial.value = respostaApi.tamanho
@@ -532,6 +540,7 @@
 
     // Regra personalizada para validar campos
     async function validarSalvarMensagem(funcaoRetorno) {
+
         // Valida o formulário de empresa
         const isValid = await formCadastroMensagens.value?.validate()
 
@@ -549,7 +558,9 @@
 
     // Esta função salva ou edita os dados de uma empresa
     async function salvardadosMensagem(funcaoRetorno) {
+
         try {
+
             // Busca o ID da empresa para saber se é inclusão ou edição
             const {data: resposta } = await axios.post(`${API_BASE_URL}/administracao/salvaMensagem/${idMensagemRecebido.value}`, dadosMensagem.value)
             
