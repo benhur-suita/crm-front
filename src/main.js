@@ -69,17 +69,48 @@ app.directive('money3', Money3Directive); // ← registra a diretiva
 app.use(vuetify);
 app.use(router);
 
+// Configuração global de scroll para o topo
+router.beforeEach((to, from, next) => {
+  // Garante que a rota está pronta antes de rolar
+  next()
+})
+
+// Após cada navegação, rola para o topo da página
+router.afterEach(() => {
+
+    // Pequeno delay para garantir que o DOM está atualizado
+    setTimeout(() => {
+
+        window.scrollTo({
+            top: 0,
+            left: 0,
+            behavior: 'auto' // 'smooth' para animação suave
+        })
+
+    }, 100)
+})
+
 // Diretiva global para transformar texto em maiúsculas
 app.directive('uppercase', {
-
+    
+    // Ao montar o elemento gera o evento de transformação
     mounted(el) {
 
+        // Seleciona o input dentro do elemento
         const input = el.querySelector('input')
-
+        
+        // Se o input existir, adiciona os event listeners
         if (input) {
-            input.addEventListener('input', () => {
+
+            // Função para transformar o valor em maiúsculas
+            const handler = () => {
                 input.value = input.value.toUpperCase()
-            })
+                input.dispatchEvent(new Event('input')) // atualiza o v-model
+            }
+
+            // Adiciona os event listeners para input e blur
+            input.addEventListener('input', handler)
+            input.addEventListener('blur', handler)   // garante ao perder foco
         }
     }
 })
@@ -104,17 +135,22 @@ app.directive('numerico', {
 // Diretiva global para máscara de CNPJ
 app.directive('cnpj-mask', {
   
+    // Ao montar o elemento gera o evento de transformação
     mounted(el) {
     
+        // Seleciona o input dentro do elemento
         const input = el.querySelector('input')
     
+        // Se o input existir, adiciona os event listeners
         if (!input) return
-
     
+        // Adiciona o event listener para input
         input.addEventListener('input', () => {
     
+            // Busca o valor do input
             let valor = input.value.replace(/\D/g, '')    
             
+            // Aplica a máscara de CNPJ
             valor = valor    
                 .replace(/^(\d{2})(\d)/, '$1.$2')    
                 .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')    
@@ -122,12 +158,64 @@ app.directive('cnpj-mask', {
                 .replace(/(\d{4})(\d)/, '$1-$2')    
                 .slice(0, 18)
     
+            // Atualiza o valor do input
             input.value = valor
     
+            // Dispara o evento de input para atualizar o v-model
             input.dispatchEvent(new Event('input'))
         })
     }
 })
+
+// Diretiva global para máscara de telefone
+app.directive('telefone', {
+
+
+    mounted(el) {
+        
+        const input = el.querySelector('input')
+        if (!input) return
+
+        const aplicarMascara = (valor) => {
+            
+            valor = valor.replace(/\D/g, '')
+
+            if (valor.length > 10) {
+                valor = valor.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3')
+            } else if (valor.length > 6) {
+                valor = valor.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3')
+            } else if (valor.length > 2) {
+                valor = valor.replace(/^(\d{2})(\d{0,5}).*/, '($1) $2')
+            } else if (valor.length > 0) {
+                valor = valor.replace(/^(\d*)/, '($1')
+            }
+            return valor
+        }
+
+        const handler = (e) => {
+            e.target.value = aplicarMascara(e.target.value)            
+        }
+
+        input.addEventListener('input', handler)
+        input.addEventListener('blur', handler)
+
+        // aplica máscara no valor inicial (quando vem da API)
+        if (input.value) {
+            input.value = aplicarMascara(input.value)
+            // aqui sim precisamos disparar para atualizar o v-model
+            input.dispatchEvent(new Event('input'))
+        }
+    },
+
+    updated(el) {
+        const input = el.querySelector('input')
+        if (input && input.value) {
+            input.value = input.value.replace(/\D/g, '')
+            input.dispatchEvent(new Event('input'))
+        }
+    }
+})
+
 
 // Registrando a rotina de formatar dinheiro como  global
 app.config.globalProperties.$formatarDinheiro = formatarDinheiro
