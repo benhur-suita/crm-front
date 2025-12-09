@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -194,7 +194,7 @@
 
     // Cria os headers da tabela
     const headersRamosAtividade = [
-        { title: 'Funções', value: 'funcoes', sortable: false },
+        { title: 'Editar', value: 'funcoes', sortable: false },
         { title: 'Código', value: 'idRamoAtividade', sortable: true },
         { title: 'Ramo Atividade', value: 'nome', sortable: true },
         { title: 'Condição', value: 'ativo', sortable: true }        
