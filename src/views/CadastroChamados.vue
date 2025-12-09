@@ -13,7 +13,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px', // Altura da barra azul
+                    'top': '64px', // Altura da barra azul
                     'left': '260px', // Largura do menu lateral
                     'width': 'calc(100% - 260px)', // 100% menos o menu lateral
                     'z-index': '999',
@@ -107,6 +107,7 @@
                         :headers="headersChamados"
                         :items="listaChamados"
                         :loading="carregandoChamados"
+                        :items-length="totalChamados"
                         @update:options="carregaListaChamados"
                         class="elevation-2 rounded-lg"
                         density="compact"
@@ -1687,6 +1688,9 @@
     // Importa módulo que controla as autorizacoes se está logado ou não
     import { useAuthStore } from '@/stores/authStore'
 
+    // Importa a store de chamados
+    import { useChamadoStore } from '@/stores/chamadoStore'
+
     // Importa a store de erros
     const erroStore = useErroStore()
 
@@ -1701,6 +1705,9 @@
 
     // Cria variável que receberão os dados das autorizações de login
     const autorizacaoLogin = useAuthStore()
+
+    // Importa a store de chamados
+    const chamadoStore = useChamadoStore()
 
     // Variável que indica se o formulário modal de chamados está aberto
     var modalChamadoAberto = false;
@@ -1728,7 +1735,7 @@
     const carregandoChamados = ref(false)
 
     // Total de itens da tabela
-    const totalItems = ref(0)
+    const totalChamados = ref(0)
     
     // Define elemento que mostra a barra de progresso da carga dos comentários
     const carregandoComentariosAcordeon = ref(false)
@@ -2532,7 +2539,11 @@
                     // Mostra quantidade de chamados
                     contarStatusDosChamados(retorno)
 
-                    totalItems.value = retorno.length
+                    // Atualiza o total de chamados
+                    totalChamados.value = retorno.length
+
+                    // Marcar como concluído
+                    chamadoStore.recarregamentoConcluido()
 
                 } else {
                     listaChamados.value = []
@@ -3943,6 +3954,16 @@
             carregarListaComentariosAcordeon()
         }
     })    
+
+    // Watcher para detectar pedido de recarregamento
+    watch(
+        () => chamadoStore.precisaRecarregar,
+        (precisaRecarregar) => {
+            if (precisaRecarregar) {
+                carregaListaChamados()
+            }
+        }
+    )
     
 </script>
 
