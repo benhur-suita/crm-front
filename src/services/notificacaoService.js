@@ -13,6 +13,31 @@ class NotificacaoService {
         this.contadorAnterior = 0
         this.intervalId = null
         this.audio = null
+        this.audioContext = null
+        this.audioHabilitado = false
+    }
+
+    // Método para habilitar áudio (deve ser chamado por um clique do usuário)
+    habilitarAudio() {
+
+        if (!this.audioHabilitado) {
+        
+            try {
+
+                const AudioContext = window.AudioContext || window.webkitAudioContext
+                this.audioContext = new AudioContext()
+                this.audioHabilitado = true
+                console.log('🔊 Áudio habilitado pelo usuário')
+                return true
+
+            } catch (erro) {
+                
+                const erroStore = useErroStore()            
+                erroStore.exibirErro(erro)
+                return false
+            }
+        }
+        return true
     }
 
     // Iniciar o monitoramento periódico
@@ -55,6 +80,8 @@ class NotificacaoService {
                 if (callback && typeof callback === 'function') {
                     callback(totalAbertos)
                 }
+                
+                this.habilitarAudio()
                 
                 // Tocar som de notificação
                 this.tocarSomNotificacao()
@@ -148,7 +175,9 @@ class NotificacaoService {
             return 0
 
         } catch (error) {
-            console.error('❌ Erro ao buscar contagem:', error.message)
+            
+            const erroStore = useErroStore()            
+            erroStore.exibirErro(erro)
             return 0
         }
     }
