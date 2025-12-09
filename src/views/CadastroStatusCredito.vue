@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -212,10 +212,11 @@
                 
                 if (respostaApi) {
 
+                    // Atribui os dados retornados da API à variável dadosStatusCredito
+                    dadosStatusCredito.value = respostaApi;  
+                    
                     // Converte os campos TINYINT(1) para booleanos
-                    respostaApi.ativo = respostaApi.ativo === 1;
-
-                    dadosStatusCredito.value = respostaApi;                   
+                    dadosStatusCredito.value.ativo = dadosStatusCredito.value.ativo == 1 ? true : false;
                 }
 
             } catch (erro) {
