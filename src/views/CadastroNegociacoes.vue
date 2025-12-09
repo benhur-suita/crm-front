@@ -401,7 +401,7 @@
             </v-expansion-panels>
 
             <!-- Tabela de dados existentes -->
-            <v-card  class="mb-6" variant="outlined">
+            <v-card  class="mb-6">
 
                 <v-card-text class="pa-0">
 
@@ -489,6 +489,9 @@
     // Retorna um objeto com informações internas sobre o componente que está sendo executado no momento    
     import { getCurrentInstance } from 'vue'
 
+    // Importa módulo que controla as autorizacoes se está logado ou não
+    import { useAuthStore } from '@/stores/authStore'
+
     // Permite acessar rotinas globais
     const { proxy } = getCurrentInstance()
 
@@ -506,6 +509,9 @@
 
     // Importa a store do snackbar
     const snackbar = useSnackbarStore()
+
+    // Cria variável que receberão os dados das autorizações de login
+    const autorizacaoLogin = useAuthStore()
     
     // Define array contendo o campo que deve ser ordenado inicialmente e a direção
     const opcoesTabelaNegociacoes = ref({ 
@@ -669,20 +675,31 @@
         // Busca todos produtos cadastrados
         const { data: dataProdutos } = await axios.get(`${API_BASE_URL}/administracao/carregaListaProdutos`);
         
-        // Carrega a lista de produtos de interesse
-        listaProdutosInteresse.value = dataProdutos.data.map(produto => ({
-            title: produto.nome,
-            value: produto.idProduto
-        }));
+        // Carrega a lista de produtos cadastrados
+        listaProdutosInteresse.value = dataProdutos.data
+            .filter(produto => produto.ativo === 1)
+            .map(produto => ({
+                title: produto.nome,
+                value: produto.idProduto
+            })
+        );
 
-        // Busca todos status negociação cadastrados
+        // Busca todos status negociação cadastrados e ativos
         const { data: dataStatusNegociacao } = await axios.get(`${API_BASE_URL}/administracao/carregaListaStatusNegociacao`);
         
-        // Carrega a lista de produtos de interesse
-        listaStatusNegociacao.value = dataStatusNegociacao.data.map(produto => ({
-            title: produto.nome,
-            value: produto.idStatusNegociacao
-        }));
+        // Carrega a lista de status negociação
+        listaStatusNegociacao.value = dataStatusNegociacao.data
+            .filter(status => {
+                // Verifica se o objeto e o campo ativo existem
+                if (!status || status.ativo === undefined) return false;
+                // Converte para número para comparação segura
+                return Number(status.ativo) === 1;
+            })
+            .map(status => ({
+                title: status.nome,
+                value: status.idStatusNegociacao
+            })
+        );        
     }
     
     // Se o campo foi limpo, recarrega a lista de Negociacao
@@ -1244,8 +1261,7 @@
             fazendoUploadNegociacao.value = false;
         }
     };
-    
-    
+        
     // Remove um arquivo anexo do negociação
     const removeAnexoNegociacao = async (index) => {
 
@@ -1314,15 +1330,6 @@
         return div.textContent || div.innerText || ''
     }
 
-    // Scroll para o formulário
-    const scrollToForm = () => {
-
-        const formElement = document.querySelector('.v-card')
-        if (formElement) {
-            formElement.scrollIntoView({ behavior: 'smooth' })
-        }
-    }
-
     // Sincroniza o conteúdo entre o componente pai e o editor Tiptap
     watch(() => props.modelValue, (value) => {
         
@@ -1347,6 +1354,14 @@
     // Rotina chamada quando o formulário é inicializado
     onMounted(() => {
         
+        // Verifica se não está logado
+        if (!autorizacaoLogin.estaLogado){
+        
+            // Carrega formulário de login
+            router.push({ name: 'Login' })
+            return
+        }
+
         // Fecha acordeon
         painelAberto.value = 1
         
