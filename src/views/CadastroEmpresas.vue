@@ -15,7 +15,7 @@
                     'border-top-left-radius': '12px',
                     'border-top-right-radius': '8px',
                     'position': 'fixed',
-                    'top': toolbarHeight + 'px',
+                    'top': '64px',
                     'left': '260px', 
                     'width': '84.7%',
                     'right': '0',
@@ -154,7 +154,7 @@
                                     label="Fone Principal"
                                     maxlength="45" 
                                     v-model="dadosEmpresa.fonePrincipal" 
-                                    v-numerico
+                                    v-telefone
                                     :rules="[rules.required]"
                                 />
                             </v-col>
@@ -636,7 +636,7 @@
                                 label="Telefone" 
                                 v-model="modalDadosColaboradorEmpresa.data.telefone" 
                                 maxlength="255"
-                                v-numerico                                
+                                v-telefone
                             />                            
                         </v-col>
 
@@ -1156,12 +1156,12 @@
                 // Busca dados da empresa pelo ID
                 const { data: dadosRecebidos } = await axios.get(`${API_BASE_URL}/administracao/carregaEmpresa/${idEmpresaRecebido.value}`)
                     
-                // Converte os campos empresa manutenção e ativo para booleanos
-                dadosEmpresa.empresaManutencao = dadosEmpresa.empresaManutencao === 1;
-                dadosEmpresa.ativo = dadosEmpresa.ativo === 1;
-
                 // Atribui os dados da empresa à variável reativa dadosEmpresa
                 dadosEmpresa.value = dadosRecebidos;
+
+                // Converte os campos empresa manutenção e ativo para booleanos
+                dadosEmpresa.value.empresaManutencao = dadosEmpresa.value.empresaManutencao === 1;
+                dadosEmpresa.value.ativo = dadosEmpresa.value.ativo === 1;
             }
 
         } catch (erro) {
@@ -1656,9 +1656,6 @@
             // Verifica se retornou dados da API
             if (respostaApi) {
 
-                // Converte os campos TINYINT(1) para booleanos
-                respostaApi.data.ativo = respostaApi.data.ativo === 1;
-                
                 // Salva os dados do colaborador retornados pela api
                 modalDadosColaboradorEmpresa.value = {
                     visible: true,
@@ -1676,6 +1673,9 @@
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 });
+
+                // Converte os campos TINYINT(1) para booleanos
+                modalDadosColaboradorEmpresa.value.data.ativo = modalDadosColaboradorEmpresa.value.data.ativo == 1
 
             } else {
                 erroStore.exibirErro('Colaborador não encontrado')
@@ -1845,30 +1845,12 @@
                 }
             }
             
-            // Salva o valor original do campo valorHora
-            var valorOriginal = modalDadosColaboradorEmpresa.value.data.valorHora
-            
-            if (valorOriginal == '' || valorOriginal == null || valorOriginal == 0){
-                valorOriginal = 'R$ 0,00'
-            }
-
-            // Remove "R$", pontos e substitui vírgula por ponto
-            const valorConvertido = parseFloat(
-                valorOriginal.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()
-            );
-
-            // Salva valor da hora sem R$ e virgulas
-            modalDadosColaboradorEmpresa.value.data.valorHora = valorConvertido
-            
             // Chama api para salvar colaborador
             const {data: resposta } = await axios.post(`${API_BASE_URL}/administracao/salvaColaborador`, modalDadosColaboradorEmpresa.value.data)
 
             // Salva id do colaborador
             modalDadosColaboradorEmpresa.value.data.id = resposta.idColaborador
             
-            // Restaura o valor da hora orignalmente digitado
-            modalDadosColaboradorEmpresa.value.data.valorHora = valorOriginal
-
             // Recarrega a lista de colaboradores
             carregarListaColaboradoresEmpresa()
 
@@ -1885,10 +1867,6 @@
             }
             
         } catch(erro){
-
-            // Restaura o valor da hora orignalmente digitado
-            modalDadosColaboradorEmpresa.value.data.valorHora = valorOriginal
-
             erroStore.exibirErro(erro)
         }        
     }
@@ -1917,44 +1895,11 @@
 
         try{
         
+            // Busca id do produto da empresa para saber se deve alterar (valor <> 0) ou criar um novo
             const idProdutoEmpresa = modalDadosProdutoEmpresa.value.data.id
 
-            // Salva o valor original do campo preço licença e preço total
-            var valorOriginalPrecoTabela = modalDadosProdutoEmpresa.value.data.precoTabela
-            var valorOriginalPrecoTotal = modalDadosProdutoEmpresa.value.data.precoTotal
-
-            if (valorOriginalPrecoTabela == '' || valorOriginalPrecoTabela == null || valorOriginalPrecoTabela == 0){
-                valorOriginalPrecoTabela = 'R$ 0,00'
-            }
-            
-            if (valorOriginalPrecoTotal == '' || valorOriginalPrecoTotal == null || valorOriginalPrecoTotal == 0){
-                valorOriginalPrecoTotal = 'R$ 0,00'
-            }
-
-            // Remove "R$", pontos e substitui vírgula por ponto
-            const valorPrecoTabelaConvertido = parseFloat(
-                valorOriginalPrecoTabela.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()
-            );
-            
-            // Remove "R$", pontos e substitui vírgula por ponto
-            const valorPrecoTotalConvertido = parseFloat(
-                valorOriginalPrecoTotal.replace('R$', '').replace(/\./g, '').replace(',', '.').trim()
-            );
-
-            // Salva valor convertido do preço tabela
-            modalDadosProdutoEmpresa.value.data.precoTabela = valorPrecoTabelaConvertido
-
-            // Salva valor convertido do preço total
-            modalDadosProdutoEmpresa.value.data.precoTotal = valorPrecoTotalConvertido
-            
             // Chama api para salvar colaborador
             const { data } = await axios.post(`${API_BASE_URL}/administracao/salvaProdutoEmpresa/${idProdutoEmpresa}`, modalDadosProdutoEmpresa.value.data)
-
-            // Restaura valor do preço tabela
-            modalDadosProdutoEmpresa.value.data.precoTabela = valorOriginalPrecoTabela
-
-            // Restaura valor do preço total
-            modalDadosProdutoEmpresa.value.data.precoTotal = valorOriginalPrecoTotal
 
             // Recarrega a lista de colaboradores
             carregarListaProdutosEmpresa()
@@ -1971,15 +1916,8 @@
                 novoProdutoEmpresa()
             }
             
+        // Mostra erro            
         } catch(erro){
-
-            // Restaura valor do preço tabela
-            modalDadosProdutoEmpresa.value.data.precoTabela = valorOriginalPrecoTabela
-
-            // Restaura valor do preço total
-            modalDadosProdutoEmpresa.value.data.precoTotal = valorOriginalPrecoTotal
-
-            // Mostra erro
             erroStore.exibirErro(erro)
         }        
     }    
